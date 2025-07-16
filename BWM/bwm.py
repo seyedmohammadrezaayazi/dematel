@@ -75,12 +75,12 @@ def aggregate_weights(weights_list):
 n_criteria = 22
 
 # داده‌های خبره اول
-best_to_criteria_1 = [3, 5, 7, 2, 1, 4, 5, 6, 8, 9, 3, 2, 7, 6, 5, 4, 3, 2, 1, 6, 5, 4]
-criteria_to_worst_1 = [1, 3, 5, 7, 9, 2, 4, 6, 8, 9, 5, 3, 1, 2, 4, 6, 7, 8, 9, 5, 3, 2]
+best_to_criteria_1 =  [5, 4, 6, 5, 4, 3, 7, 7, 3, 4, 5, 1, 4, 6, 5, 3, 4, 5, 4, 9, 3, 5]
+criteria_to_worst_1 = [7, 6, 6, 6, 6, 5, 4, 4, 7, 7, 6, 9, 6, 5, 6, 6, 6, 7, 5, 1, 6, 6]
 
 # داده‌های خبره دوم
-best_to_criteria_2 = [4, 6, 8, 3, 2, 5, 6, 7, 9, 10, 4, 3, 8, 7, 6, 5, 4, 3, 2, 7, 6, 5]
-criteria_to_worst_2 = [2, 4, 6, 8, 10, 3, 5, 7, 9, 10, 6, 4, 2, 3, 5, 7, 8, 9, 10, 6, 4, 3]
+best_to_criteria_2 =  [4, 3, 1, 6, 2, 7, 8, 8, 4, 4, 2, 3, 8, 7, 8, 3, 4, 5, 5, 9, 7, 6]
+criteria_to_worst_2 = [7, 6, 9, 6, 9, 2, 2, 3, 7, 5, 7, 7, 5, 3, 4, 6, 5, 5, 4, 1, 4, 3]
 
 # محاسبه وزن‌ها برای هر خبره
 weights_1 = solve_bwm(best_to_criteria_1, criteria_to_worst_1, n_criteria)
@@ -90,6 +90,6 @@ weights_2 = solve_bwm(best_to_criteria_2, criteria_to_worst_2, n_criteria)
 final_weights = aggregate_weights([weights_1, weights_2])
 
 # نمایش وزن‌های نهایی
-print("وزن‌های خبره اول:", weights_1)
-print("وزن‌های خبره دوم:", weights_2)
+#print("وزن‌های خبره اول:", weights_1)
+#print("وزن‌های خبره دوم:", weights_2)
 print("وزن‌های تجمیع‌شده نهایی:", final_weights)
