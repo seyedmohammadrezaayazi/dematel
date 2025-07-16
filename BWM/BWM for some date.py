@@ -1,86 +1,125 @@
+
 import numpy as np
 from scipy.optimize import linprog
 
-# تعداد معیارها و خبرگان
-num_criteria = 22
-num_experts = 2
 
-# داده‌های خبرگان
-# ماتریس مقایسه بهترین به معیارها برای هر خبره (هر خبره یک لیست جداگانه دارد)
-best_to_criteria = [
-    [5, 4, 6, 5, 4, 3, 7, 7, 3, 4, 5, 1, 4, 6, 5, 3, 4, 5, 4, 9, 3, 5],  # خبره 1
-    [4, 3, 1, 6, 2, 7, 8, 8, 4, 4, 2, 3, 8, 7, 8, 3, 4, 5, 5, 9, 7, 6]   # خبره 2
-]
+def solve_bwm(best_to_criteria, criteria_to_worst, n_criteria):
+    """
+    حل BWM برای یک خبره.
+    :param best_to_criteria: لیست مقایسه‌های بهترین-به-معیارها
+    :param criteria_to_worst: لیست مقایسه‌های معیارها-به-بدترین
+    :param n_criteria: تعداد معیارها
+    :return: وزن نهایی معیارها
+    """
+    # تعریف متغیرهای تصمیم
+    c = np.zeros(n_criteria + 1)
+    c[-1] = 1  # متغیر ایپسیلون (ε)
 
-# ماتریس مقایسه معیارها به بدترین برای هر خبره
-criteria_to_worst = [
-    [7, 6, 6, 6, 6, 5, 4, 4, 7, 7, 6, 9, 6, 5, 6, 6, 6, 7, 5, 1, 6, 6],  # خبره 1
-    [7, 6, 9, 6, 9, 2, 2, 3, 7, 5, 7, 7, 5, 3, 4, 6, 5, 5, 4, 1, 4, 3]   # خبره 2
-]
-
-# بهترین و بدترین معیار برای هر خبره
-best_criteria = [11, 2]  # شماره معیار منهای یک می شود
-worst_criteria = [19, 19]  # شماره معیار منهای یک می شود
-
-# تابع محاسبه وزن‌ها با روش BWM
-def calculate_weights(best_to_criteria, criteria_to_worst, best_idx, worst_idx, num_criteria):
-    # تعداد متغیرها: وزن هر معیار (w) و مقدار تابع هدف (ξ)
-    num_variables = num_criteria + 1
-
-    # قیود
+    # محدودیت‌ها
     A = []
     b = []
 
-    # قیود مربوط به بهترین معیار
-    for i in range(num_criteria):
-        if i != best_idx:
-            row = [0] * num_variables
-            row[i] = 1
-            row[best_idx] = -best_to_criteria[i]
-            row[-1] = -1
-            A.append(row)
-            b.append(0)
+    # محدودیت‌های بهترین به معیارها
+    for i in range(n_criteria):
+        constraint = np.zeros(n_criteria + 1)
+        constraint[i] = -best_to_criteria[i]
+        constraint[-1] = -1
+        A.append(constraint)
+        b.append(0)
 
-    # قیود مربوط به بدترین معیار
-    for i in range(num_criteria):
-        if i != worst_idx:
-            row = [0] * num_variables
-            row[i] = -1
-            row[worst_idx] = criteria_to_worst[i]
-            row[-1] = -1
-            A.append(row)
-            b.append(0)
+        constraint = np.zeros(n_criteria + 1)
+        constraint[i] = best_to_criteria[i]
+        constraint[-1] = -1
+        A.append(constraint)
+        b.append(0)
 
-    # قیود مجموع وزن‌ها برابر با 1
-    row = [1] * num_criteria + [0]
-    A.append(row)
-    b.append(1)
+    # محدودیت‌های معیارها به بدترین
+    for i in range(n_criteria):
+        constraint = np.zeros(n_criteria + 1)
+        constraint[i] = -1 / criteria_to_worst[i]
+        constraint[-1] = -1
+        A.append(constraint)
+        b.append(0)
 
-    # حل مدل با linprog
-    A = np.array(A)
-    b = np.array(b)
-    c = [0] * num_criteria + [1]  # تابع هدف (کمینه کردن ξ)
-    bounds = [(0, None)] * num_variables
+        constraint = np.zeros(n_criteria + 1)
+        constraint[i] = 1 / criteria_to_worst[i]
+        constraint[-1] = -1
+        A.append(constraint)
+        b.append(0)
 
-    result = linprog(c, A_ub=A, b_ub=b, bounds=bounds, method='highs')
-    weights = result.x[:-1]  # وزن‌ها
-    return weights
+    # محدودیت‌های نرمال‌سازی (جمع وزن‌ها = 1)
+    A_eq = [np.ones(n_criteria + 1)]
+    A_eq[0][-1] = 0
+    b_eq = [1]
+
+    # حل مسئله بهینه‌سازی خطی
+    result = linprog(c, A_ub=np.array(A), b_ub=np.array(b), A_eq=np.array(A_eq), b_eq=np.array(b_eq), bounds=(0, 1))
+
+    if result.success:
+        return result.x[:-1]  # وزن‌های نهایی
+    else:
+        raise ValueError("بهینه‌سازی خطی موفقیت‌آمیز نبود!")
+
+
+def aggregate_weights(weights_list):
+    """
+    تجمیع وزن‌ها با میانگین هندسی.
+    :param weights_list: لیست وزن‌های خبرگان
+    :return: وزن‌های تجمیع‌شده
+    """
+    weights_array = np.array(weights_list)
+    aggregated_weights = np.prod(weights_array, axis=0) ** (1 / len(weights_list))
+    return aggregated_weights
+
+
+def rank_criteria(weights):
+    """
+    رتبه‌بندی معیارها بر اساس وزن نهایی.
+    :param weights: لیست وزن‌های نهایی معیارها
+    :return: لیست رتبه‌بندی معیارها
+    """
+    ranked_indices = np.argsort(weights)[::-1]  # مرتب‌سازی به ترتیب نزولی
+    ranked_weights = weights[ranked_indices]
+    return ranked_indices, ranked_weights
+
+
+# تعداد معیارها و خبرگان
+n_criteria = 22
+n_experts = 5  # تعداد خبرگان (می‌توانید این مقدار را تغییر دهید)
+
+# داده‌های خبرگان
+best_to_criteria_list = [
+ [5, 4, 6, 5, 4, 3, 7, 7, 3, 4, 5, 1, 4, 6, 5, 3, 4, 5, 4, 9, 3, 5], # خبره 1
+ [4, 3, 1, 6, 2, 7, 8, 8, 4, 4, 2, 3, 8, 7, 8, 3, 4, 5, 5, 9, 7, 6], # خبره 2
+ [2, 1, 3, 2, 2, 3, 7, 8, 3, 2, 4, 4, 4, 6, 7, 5, 3, 4, 5, 9, 5, 4],
+ [2, 2, 3, 3, 1, 4, 6, 7, 2, 3, 4, 4, 3, 5, 6, 4, 5, 4, 5, 9, 5, 3],
+ [3, 2, 2, 3, 1, 4, 5, 6, 4, 2, 3, 4, 3, 5, 6, 4, 3, 4, 5, 9, 5, 3]
+]
+
+criteria_to_worst_list = [
+ [7, 6, 6, 6, 6, 5, 4, 4, 7, 7, 6, 9, 6, 5, 6, 6, 6, 7, 5, 1, 6, 6], # خبره 1
+ [7, 6, 9, 6, 9, 2, 2, 3, 7, 5, 7, 7, 5, 3, 4, 6, 5, 5, 4, 1, 4, 3], # خبره 2
+ [8, 9, 7, 8, 9, 7, 3, 3, 8, 9, 6, 6, 7, 4, 4, 6, 8, 7, 6, 1, 6, 7],
+ [8, 8, 7, 7, 9, 6, 4, 3, 8, 7, 6, 6, 7, 5, 4, 6, 5, 6, 5, 1, 5, 7],
+ [7, 8, 8, 7, 9, 6, 5, 4, 7, 9, 7, 6, 7, 5, 4, 6, 7, 8, 6, 1, 5, 8]
+]
 
 # محاسبه وزن‌ها برای هر خبره
-weights_experts = []
-for i in range(num_experts):
-    weights = calculate_weights(
-        best_to_criteria[i],
-        criteria_to_worst[i],
-        best_criteria[i],
-        worst_criteria[i],
-        num_criteria
-    )
-    weights_experts.append(weights)
+weights_list = []
+for i in range(n_experts):
+    weights = solve_bwm(best_to_criteria_list[i], criteria_to_worst_list[i], n_criteria)
+    weights_list.append(weights)
 
-# تجمیع وزن‌های خبرگان با میانگین هندسی
-weights_final = np.mean(weights_experts, axis=0)
+# تجمیع وزن‌های نهایی
+final_weights = aggregate_weights(weights_list)
 
-# نمایش وزن‌های نهایی
-print("وزن‌های نهایی معیارها:")
-print(weights_final)
+# رتبه‌بندی معیارها
+ranked_indices, ranked_weights = rank_criteria(final_weights)
+
+# نمایش وزن‌های نهایی و رتبه‌بندی
+print("وزن‌های تجمیع‌شده نهایی:")
+print(final_weights)
+
+print("\nرتبه‌بندی معیارها:")
+for rank, (index, weight) in enumerate(zip(ranked_indices, ranked_weights), start=1):
+    print(f"رتبه {rank}: معیار {index + 1} با وزن {weight:.4f}")
