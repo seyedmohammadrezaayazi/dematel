@@ -25,8 +25,11 @@ def combine_expert_opinions(expert_matrices):
 
 # فایل‌های اکسل نظرات خبرگان
 file_paths = [
-    'expert1.xlsx',  # مسیر فایل اول
-    'expert2.xlsx'
+    'expert1.xlsx',
+    'expert2.xlsx',
+    'expert3.xlsx',
+    'expert4.xlsx',
+    'expert5.xlsx'
 ]
 
 # مرحله 1: خواندن و ترکیب نظرات خبرگان
