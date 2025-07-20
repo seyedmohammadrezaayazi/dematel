@@ -8,6 +8,8 @@ def read_expert_opinions(file_paths):
     for file_path in file_paths:
         # خواندن فایل اکسل به صورت DataFrame
         df = pd.read_excel(file_path, header=None)
+        # تبدیل مقادیر غیر عددی به صفر
+        df = df.apply(pd.to_numeric, errors='coerce').fillna(0)
         # تبدیل DataFrame به آرایه numpy
         expert_matrix = df.values
         expert_matrices.append(expert_matrix)
